@@ -1,9 +1,28 @@
-﻿#include <SPI.h>          // библиотека для работы с шиной SPI
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <SPI.h>          // библиотека для работы с шиной SPI
 #include "nRF24L01.h"     // библиотека радиомодуля
 #include "RF24.h"         // ещё библиотека радиомодуля
+#include <DHT.h>
+
+
+#define DHTPIN 2
+#define ONE_WIRE_BUS 8
 
 RF24 radio(9, 10); // "создать" модуль на пинах 9 и 10 Для Уно
-//RF24 radio(9,53); // для Меги
+
+DHT dht(DHTPIN, DHT11);
+
+// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_BUS);
+
+// Pass our oneWire reference to Dallas Temperature. 
+DallasTemperature sensors(&oneWire);
+
+// arrays to hold device addresses
+//DeviceAddress SystemAddr, outsideThermometer;
+
+DeviceAddress SystemAddr = { 0x28, 0xFF, 0x61, 0x14, 0x74, 0x16, 0x05, 0xAA };
 
 byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //возможные номера труб
 
@@ -38,12 +57,28 @@ void setup() {
 
   radio.powerUp(); //начать работу
   radio.startListening();  //начинаем слушать эфир, мы приёмный модуль
+
+  dht.begin();
+  
+   // Start up the library
+  sensors.begin();
+  sensors.setResolution(SystemAddr, 10);
+   // search for devices on the bus and assign based on an index.
+  //if (!sensors.getAddress(insideThermometer, 0)) Serial.println("Unable to find address for Device 0"); 
+  //if (!sensors.getAddress(outsideThermometer, 1)) Serial.println("Unable to find address for Device 1"); 
+
+  // show the addresses we found on the bus
 }
+
 
 Node node;
 HeatingSystem HS;
 
 void loop() {
+  sensors.requestTemperatures();
+  float humidity = dht.readHumidity();
+  float SystemTemperature = sensors.getTempC(SystemAddr);
+  //Serial.println(SystemTemperature);
   byte pipeNo;
   while ( radio.available(&pipeNo)) {  // слушаем эфир со всех труб
     radio.read( &node, sizeof(node) );         // чиатем входящий сигнал
@@ -54,6 +89,7 @@ void loop() {
     switch (node.cmd) {
       case 0xCEA:
         HS.TempOn = node.value;
+        Serial.println("ok");
         break;
       case 0xCFA:
         radio.writeAckPayload(pipeNo, &HS.TempOn, sizeof(float) );
@@ -71,13 +107,22 @@ void loop() {
         radio.writeAckPayload(pipeNo, &HS.Mode, sizeof(bool) );
         break;
       case 0xCEC:
-        
+
         break;
       case 0xCFC:
-        
+
         break;
       case 0xCFD:
-        
+
+        break;
+      case 0xCFE0:
+
+Serial.println(SystemTemperature);
+        radio.writeAckPayload(pipeNo, &SystemTemperature, sizeof(SystemTemperature) );
+        break;
+      case 0xCFE1:
+      Serial.println(humidity);
+        radio.writeAckPayload(pipeNo, &humidity, sizeof(humidity) );
         break;
     }
   }

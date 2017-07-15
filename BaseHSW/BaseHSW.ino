@@ -37,21 +37,44 @@ void setup() {
 Node node;
 
 void loop() {
-  int params[3] = {0x01, 0x05, 0x1f};
+
   float value;
-  node.value = rand() % 10;
-  int v = rand() % 3 ;
-  node.cmd = params[v];
-  if ( radio.write(&node, sizeof(node)) ) {                        // Send the counter variable to the other radio
-    if (!radio.available()) {                           // если не получаем ответ
-      Serial.println("No answer");
-    } else {
-      while (radio.available() ) {
-        radio.read( &value, sizeof(value) );
-        Serial.print(" Recieved: "); Serial.println(value);
+  bool f = false;
+  char inData[20]; // Allocate some space for the string
+  char inChar; // Where to store the character read
+  byte index = 0; // Index into array; where to store the character
+
+    
+  
+
+  while (Serial.available() > 0) {
+    if (index < 19){
+      inChar = Serial.read(); // Read a character
+      inData[index] = inChar; // Store it
+      index++; // Increment where to write next
+      inData[index] = '\0'; // Null terminate the string
+      
+    }
+    f = true;
+  }
+  
+  
+  
+  if (f) {
+    node.value = random(1,10);
+    sscanf(inData, "%x", &node.cmd);
+    Serial.println(inData);
+    Serial.println(node.cmd);Serial.println(node.value);
+    if ( radio.write(&node, sizeof(node)) ) {                        // Send the counter variable to the other radio
+      if (!radio.available()) {                           // если не получаем ответ
+        Serial.println("No answer");
+      } else {
+        while (radio.available() ) {
+          radio.read( &value, sizeof(value) );
+          Serial.print(" Recieved: "); Serial.println(value);
+        }
       }
     }
   }
-
-  delay(1000);
+  delay(10);
 }
