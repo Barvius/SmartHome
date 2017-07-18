@@ -9,7 +9,7 @@ RF24 radio(9, 10); // "создать" модуль на пинах 9 и 10 Дл
 byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //возможные номера труб
 
 typedef struct Node {
-  int cmd;
+  unsigned int cmd;
   float value;
 } Node;
 
@@ -20,9 +20,12 @@ void setup() {
   radio.setAutoAck(1);         //режим подтверждения приёма, 1 вкл 0 выкл
   radio.setRetries(0, 15);    //(время между попыткой достучаться, число попыток)
   radio.enableAckPayload();    //разрешить отсылку данных в ответ на входящий сигнал
-  radio.setPayloadSize(32);     //размер пакета, в байтах
+  //radio.setPayloadSize(32);     //размер пакета, в байтах
+  radio.enableDynamicPayloads();
 
   radio.openWritingPipe(address[0]);   //мы - труба 0, открываем канал для передачи данных
+  radio.openReadingPipe(1, address[1]);
+
   radio.setChannel(0x60);  //выбираем канал (в котором нет шумов!)
 
   radio.setPALevel (RF24_PA_MAX); //уровень мощности передатчика. На выбор RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX
@@ -39,42 +42,31 @@ Node node;
 void loop() {
 
   float value;
-  bool f = false;
-  char inData[20]; // Allocate some space for the string
-  char inChar; // Where to store the character read
-  byte index = 0; // Index into array; where to store the character
-
-    
+  byte pipeNo;
+  node.value = random(1, 10);
+  node.cmd = 0xcfe0;
+  Serial.println(node.cmd); Serial.println(node.value);
+  //if ( radio.write(&node, sizeof(node)) ) {                        // Send the counter variable to the other radio
+  // radio.write(&node, sizeof(node));
+  //delay(1000);
+  //      radio.flush_rx();
+  radio.write(&node, sizeof(node), 0);
   
-
-  while (Serial.available() > 0) {
-    if (index < 19){
-      inChar = Serial.read(); // Read a character
-      inData[index] = inChar; // Store it
-      index++; // Increment where to write next
-      inData[index] = '\0'; // Null terminate the string
-      
-    }
-    f = true;
+  //radio.openReadingPipe(0, address[1]);
+  radio.startListening();
+  delay(1000);
+  if ( radio.available(&pipeNo)) {  // слушаем эфир со всех труб
+    radio.read( &node, sizeof(node) );
+    Serial.print(" From: "); Serial.print(pipeNo);
+    Serial.print(" Recieved: "); Serial.print(node.value);
+     Serial.print(" CMD: "); Serial.println(node.cmd, HEX);
+  } else {
+    Serial.println("no data");
   }
-  
-  
-  
-  if (f) {
-    node.value = random(1,10);
-    sscanf(inData, "%x", &node.cmd);
-    Serial.println(inData);
-    Serial.println(node.cmd);Serial.println(node.value);
-    if ( radio.write(&node, sizeof(node)) ) {                        // Send the counter variable to the other radio
-      if (!radio.available()) {                           // если не получаем ответ
-        Serial.println("No answer");
-      } else {
-        while (radio.available() ) {
-          radio.read( &value, sizeof(value) );
-          Serial.print(" Recieved: "); Serial.println(value);
-        }
-      }
-    }
-  }
-  delay(10);
+
+  radio.stopListening();
+
+
+
+  delay(5000);
 }
