@@ -80,15 +80,13 @@ void setup() {
 
 
 void loop() {
+  sensors.requestTemperatures();
   bool send = false;
   byte pipeNo;
-  
-  sensors.requestTemperatures();
-
   float humidity = dht.readHumidity();
   float SystemTemperature = sensors.getTempC(SystemSensor);
   float ExternalTemperature = sensors.getTempC(ExternalSensor);
-  
+  //auto control
   if (HS.Mode) { // auto
     if (SystemTemperature > HS.TempOn && digitalRead(PUMP_RELAY)) {
       digitalWrite(PUMP_RELAY, LOW);
@@ -97,17 +95,17 @@ void loop() {
       digitalWrite(PUMP_RELAY, HIGH);
     }
   }
-  
+  // alarm beep
   if(HS.Alarm && SystemTemperature > HS.TempAlarm){
     tone(ALARM_PIN, 2750, 500);
   } else {
     noTone(ALARM_PIN);
   }
-  
-  while ( radio.available(&pipeNo)) {  // слушаем эфир со всех труб
-    uint8_t len = radio.getDynamicPayloadSize();
+  // связь с миром
+  while ( radio.available(&pipeNo)) {
+    //uint8_t len = radio.getDynamicPayloadSize();
     //Serial.println(len);
-    radio.read( &node, len );         // чиатем входящий сигнал
+    radio.read( &node, sizeof(node) );
     switch (node.cmd) {
       // set max temp
       case 0xCEA1:
@@ -179,6 +177,7 @@ void loop() {
         node.value = humidity;
         break;
     }
+    // отправка пакета по флагу
     if (send) {
       radio.stopListening();
       radio.write(&node, sizeof(node) );
