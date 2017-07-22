@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
     uint8_t len = radio.getDynamicPayloadSize();
     //printf("b -- %d\n", len);
     if ( radio.available(&pipeNo)) {
-      radio.read( &node, len );
+      radio.read( &node, sizeof(node));
       printf("from - %d %lu %f\n", pipeNo, node.cmd, node.value);
     } else {
       printf("no data\n");
