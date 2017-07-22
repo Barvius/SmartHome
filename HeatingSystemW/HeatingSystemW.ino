@@ -1,32 +1,35 @@
+#include <EEPROM.h>
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
-#include <SPI.h>          // библиотека для работы с шиной SPI
-#include "nRF24L01.h"     // библиотека радиомодуля
-#include "RF24.h"         // ещё библиотека радиомодуля
 #include <DHT.h>
 
-
-#define DHTPIN 2
+// HW pin config
+#define DHT_PIN 2
 #define ONE_WIRE_BUS 3
 #define PUMP_RELAY 8
 #define ALARM_PIN 6
+// EEPROM adress
+#define TEMPON_ADDR 0
+#define TEMPOFF_ADDR 1
+#define MODE_ADDR 2
+#define TEMPALARM_ADDR 3
+#define ALARM_ADDR 4
+
 RF24 radio(9, 10); // "создать" модуль на пинах 9 и 10 Для Уно
 
-DHT dht(DHTPIN, DHT11);
+DHT dht(DHT_PIN, DHT11);
 
-// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
 
-// Pass our oneWire reference to Dallas Temperature.
 DallasTemperature sensors(&oneWire);
-
-// arrays to hold device addresses
-//DeviceAddress SystemAddr, outsideThermometer;
 
 DeviceAddress SystemSensor = { 0x28, 0xFF, 0x61, 0x14, 0x74, 0x16, 0x05, 0xAA };
 DeviceAddress ExternalSensor = { 0x28, 0xFF, 0x04, 0x16, 0x74, 0xC9, 0x77, 0xFF };
 
-byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //возможные номера труб
+byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"};
 
 typedef struct Node {
   unsigned long cmd;
@@ -37,8 +40,8 @@ typedef struct HeatingSystem {
   int TempOn;
   int TempOff;
   int TempAlarm;
-  bool Mode;
-  bool Alarm;
+  int  Mode;
+  int  Alarm;
 };
 
 Node node;
@@ -53,12 +56,9 @@ void setup() {
   radio.enableAckPayload();    //разрешить отсылку данных в ответ на входящий сигнал
   //radio.setPayloadSize(32);     //размер пакета, в байтах
   radio.enableDynamicPayloads();
-
   radio.openReadingPipe(1, address[0]);     //хотим слушать трубу 0
   radio.openWritingPipe(address[1]);
-
   radio.setChannel(0x60);  //выбираем канал (в котором нет шумов!)
-
   radio.setPALevel (RF24_PA_MAX); //уровень мощности передатчика. На выбор RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX
   radio.setDataRate (RF24_1MBPS); //скорость обмена. На выбор RF24_2MBPS, RF24_1MBPS, RF24_250KBPS
   //должна быть одинакова на приёмнике и передатчике!
@@ -66,18 +66,31 @@ void setup() {
 
   radio.powerUp(); //начать работу
   radio.startListening();  //начинаем слушать эфир, мы приёмный модуль
-  // radio.printDetails();
+  
   dht.begin();
-
+  
   sensors.begin();
   sensors.setResolution(12);
 
   pinMode(PUMP_RELAY, OUTPUT);
   digitalWrite(PUMP_RELAY, HIGH);
-
   pinMode(ALARM_PIN, OUTPUT);
+  
+  HS.TempOn = EEPROM.read(TEMPON_ADDR);
+  HS.TempOff = EEPROM.read(TEMPOFF_ADDR);
+  HS.Mode = EEPROM.read(MODE_ADDR);
+  HS.Alarm = EEPROM.read(ALARM_ADDR);
+  HS.TempAlarm = EEPROM.read(TEMPALARM_ADDR);
 }
 
+bool WriteEEPROM(int *Value, int NewValue, uint8_t addr) {
+  if (*Value != NewValue) {
+    *Value = NewValue;
+    EEPROM.write(addr, NewValue);
+    return true;
+  }
+  return false;
+}
 
 void loop() {
   sensors.requestTemperatures();
@@ -96,7 +109,7 @@ void loop() {
     }
   }
   // alarm beep
-  if(HS.Alarm && SystemTemperature > HS.TempAlarm){
+  if (HS.Alarm && SystemTemperature > HS.TempAlarm) {
     tone(ALARM_PIN, 2750, 500);
   } else {
     noTone(ALARM_PIN);
@@ -109,7 +122,7 @@ void loop() {
     switch (node.cmd) {
       // set max temp
       case 0xCEA1:
-        HS.TempOn = node.value;
+        WriteEEPROM(&HS.TempOn,node.value,TEMPON_ADDR);
         break;
       // get max temp
       case 0xCFA1:
@@ -118,7 +131,7 @@ void loop() {
         break;
       // set min temp
       case 0xCEA2:
-        HS.TempOff = node.value;
+        WriteEEPROM(&HS.TempOff,node.value,TEMPOFF_ADDR);
         break;
       // ge min temp
       case 0xCFA2:
@@ -127,7 +140,7 @@ void loop() {
         break;
       // set mode
       case 0xCEA0:
-        HS.Mode = (bool)node.value;
+        WriteEEPROM(&HS.Mode,node.value,MODE_ADDR);
         break;
       // get mode
       case 0xCFA0:
@@ -155,11 +168,11 @@ void loop() {
         break;
       // mode alarm set
       case 0xCEB0:
-        HS.Alarm = (bool)node.value;
+         WriteEEPROM(&HS.Alarm,node.value,ALARM_ADDR);
         break;
       // temp alarm set
       case 0xCEB1:
-        HS.TempAlarm = node.value;
+        WriteEEPROM(&HS.TempAlarm,node.value,TEMPALARM_ADDR);
         break;
       // get temp
       case 0xCFE:
@@ -184,5 +197,4 @@ void loop() {
       radio.startListening();
     }
   }
-
 }
