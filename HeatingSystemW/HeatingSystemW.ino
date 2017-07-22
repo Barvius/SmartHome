@@ -9,7 +9,7 @@
 #define DHTPIN 2
 #define ONE_WIRE_BUS 3
 #define PUMP_RELAY 8
-
+#define ALARM_PIN 6
 RF24 radio(9, 10); // "создать" модуль на пинах 9 и 10 Для Уно
 
 DHT dht(DHTPIN, DHT11);
@@ -29,21 +29,23 @@ DeviceAddress ExternalSensor = { 0x28, 0xFF, 0x04, 0x16, 0x74, 0xC9, 0x77, 0xFF 
 byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; //возможные номера труб
 
 typedef struct Node {
-  unsigned int cmd;
-  float value;
+  unsigned long cmd;
+  float value = NULL;
 } Node;
 
 typedef struct HeatingSystem {
-  float TempOn;
-  float TempOff;
+  int TempOn;
+  int TempOff;
+  int TempAlarm;
   bool Mode;
+  bool Alarm;
 };
 
 Node node;
 HeatingSystem HS;
 
 void setup() {
-  Serial.begin(9600); //открываем порт для связи с ПК
+  Serial.begin(57600); //открываем порт для связи с ПК
 
   radio.begin(); //активировать модуль
   radio.setAutoAck(1);         //режим подтверждения приёма, 1 вкл 0 выкл
@@ -64,73 +66,115 @@ void setup() {
 
   radio.powerUp(); //начать работу
   radio.startListening();  //начинаем слушать эфир, мы приёмный модуль
-
+  // radio.printDetails();
   dht.begin();
 
   sensors.begin();
   sensors.setResolution(12);
 
   pinMode(PUMP_RELAY, OUTPUT);
-  digitalWrite(PUMP_RELAY, HIGH); 
+  digitalWrite(PUMP_RELAY, HIGH);
+
+  pinMode(ALARM_PIN, OUTPUT);
 }
 
 
 void loop() {
   bool send = false;
-  sensors.requestTemperatures();
+  byte pipeNo;
   
+  sensors.requestTemperatures();
+
   float humidity = dht.readHumidity();
   float SystemTemperature = sensors.getTempC(SystemSensor);
   float ExternalTemperature = sensors.getTempC(ExternalSensor);
-  Serial.println(sensors.getDeviceCount());
-  if(HS.Mode){// auto
-    if(SystemTemperature > HS.TempOn && digitalRead(PUMP_RELAY)){
+  
+  if (HS.Mode) { // auto
+    if (SystemTemperature > HS.TempOn && digitalRead(PUMP_RELAY)) {
       digitalWrite(PUMP_RELAY, LOW);
     }
-    if(SystemTemperature < HS.TempOff && !digitalRead(PUMP_RELAY)){
+    if (SystemTemperature < HS.TempOff && !digitalRead(PUMP_RELAY)) {
       digitalWrite(PUMP_RELAY, HIGH);
     }
   }
   
-  byte pipeNo;
+  if(HS.Alarm && SystemTemperature > HS.TempAlarm){
+    tone(ALARM_PIN, 2750, 500);
+  } else {
+    noTone(ALARM_PIN);
+  }
+  
   while ( radio.available(&pipeNo)) {  // слушаем эфир со всех труб
-    radio.read( &node, sizeof(node) );         // чиатем входящий сигнал
+    uint8_t len = radio.getDynamicPayloadSize();
+    //Serial.println(len);
+    radio.read( &node, len );         // чиатем входящий сигнал
     switch (node.cmd) {
-      case 0xCEA:
+      // set max temp
+      case 0xCEA1:
         HS.TempOn = node.value;
         break;
-      case 0xCFA:
+      // get max temp
+      case 0xCFA1:
         send = true;
         node.value = HS.TempOn;
         break;
-      case 0xCEB:
+      // set min temp
+      case 0xCEA2:
         HS.TempOff = node.value;
         break;
-      case 0xCFB:
+      // ge min temp
+      case 0xCFA2:
         send = true;
         node.value = HS.TempOff;
         break;
-      case 0xCEF:
+      // set mode
+      case 0xCEA0:
         HS.Mode = (bool)node.value;
         break;
-      case 0xCFF:
+      // get mode
+      case 0xCFA0:
         send = true;
         node.value = HS.Mode;
         break;
-      case 0xCEC:
-
+      // set rel state
+      case 0xCEF:
+        digitalWrite(PUMP_RELAY, (bool)node.value);
         break;
-      case 0xCFC:
-
+      // get rel state
+      case 0xCFF:
+        send = true;
+        node.value = digitalRead(PUMP_RELAY);
         break;
-      case 0xCFD:
-
+      // get alarm mode
+      case 0xCFB0:
+        send = true;
+        node.value = HS.Alarm;
         break;
-      case 0xCFE0:
+      // get temp alarm
+      case 0xCFB1:
+        send = true;
+        node.value = HS.TempAlarm;
+        break;
+      // mode alarm set
+      case 0xCEB0:
+        HS.Alarm = (bool)node.value;
+        break;
+      // temp alarm set
+      case 0xCEB1:
+        HS.TempAlarm = node.value;
+        break;
+      // get temp
+      case 0xCFE:
         send = true;
         node.value = SystemTemperature;
         break;
-      case 0xCFE1:
+      // ext temp get
+      case 0xCFC0:
+        send = true;
+        node.value = ExternalTemperature;
+        break;
+      // ext humi get
+      case 0xCFC1:
         send = true;
         node.value = humidity;
         break;
