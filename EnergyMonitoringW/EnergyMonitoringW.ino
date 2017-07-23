@@ -66,7 +66,7 @@ void loop() {
     switch (node.cmd) {
       // get voltage
       case 0xAF0:
-        adioSend(data.Vrms);
+        RadioSend(data.Vrms);
         break;
       // get current
       case 0xAF1:

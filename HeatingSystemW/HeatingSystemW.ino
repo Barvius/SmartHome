@@ -18,7 +18,7 @@
 #define TEMPALARM_ADDR 3
 #define ALARM_ADDR 4
 
-RF24 radio(9, 10); // "создать" модуль на пинах 9 и 10 Для Уно
+RF24 radio(9, 10);
 
 DHT dht(DHT_PIN, DHT11);
 
@@ -59,7 +59,7 @@ void setup() {
   radio.openWritingPipe(address[1]);
   radio.setChannel(0x60);
   radio.setPALevel (RF24_PA_MAX);
-  radio.setDataRate (RF24_1MBPS); 
+  radio.setDataRate (RF24_1MBPS);
   radio.powerUp();
   radio.startListening();
 
@@ -97,11 +97,11 @@ void RadioSend(float Value){
 
 void loop() {
   sensors.requestTemperatures();
-  bool send = false;
-  byte pipeNo;
   float humidity = dht.readHumidity();
   float SystemTemperature = sensors.getTempC(SystemSensor);
   float ExternalTemperature = sensors.getTempC(ExternalSensor);
+  node.cmd = NULL;
+  node.value = NULL;
   //auto control
   if (HS.Mode) { // auto
     if (SystemTemperature > HS.TempOn && digitalRead(PUMP_RELAY)) {
@@ -118,7 +118,7 @@ void loop() {
     noTone(ALARM_PIN);
   }
   // связь с миром
-  while ( radio.available(&pipeNo)) {
+  while ( radio.available()) {
     //uint8_t len = radio.getDynamicPayloadSize();
     //Serial.println(len);
     radio.read( &node, sizeof(node) );
@@ -129,8 +129,7 @@ void loop() {
         break;
       // get max temp
       case 0xCFA1:
-        send = true;
-        node.value = HS.TempOn;
+        RadioSend(HS.TempOn);
         break;
       // set min temp
       case 0xCEA2:
@@ -138,8 +137,7 @@ void loop() {
         break;
       // ge min temp
       case 0xCFA2:
-        send = true;
-        node.value = HS.TempOff;
+        RadioSend(HS.TempOff);
         break;
       // set mode
       case 0xCEA0:
@@ -147,8 +145,7 @@ void loop() {
         break;
       // get mode
       case 0xCFA0:
-        send = true;
-        node.value = HS.Mode;
+        RadioSend(HS.Mode);
         break;
       // set rel state
       case 0xCEF:
@@ -156,18 +153,15 @@ void loop() {
         break;
       // get rel state
       case 0xCFF:
-        send = true;
-        node.value = digitalRead(PUMP_RELAY);
+        RadioSend(digitalRead(PUMP_RELAY));
         break;
       // get alarm mode
       case 0xCFB0:
-        send = true;
-        node.value = HS.Alarm;
+        RadioSend(HS.Alarm);
         break;
       // get temp alarm
       case 0xCFB1:
-        send = true;
-        node.value = HS.TempAlarm;
+        RadioSend(HS.TempAlarm);
         break;
       // mode alarm set
       case 0xCEB0:
@@ -179,25 +173,16 @@ void loop() {
         break;
       // get temp
       case 0xCFE:
-        send = true;
-        node.value = SystemTemperature;
+        RadioSend(SystemTemperature);
         break;
       // ext temp get
       case 0xCFC0:
-        send = true;
-        node.value = ExternalTemperature;
+        RadioSend(ExternalTemperature);
         break;
       // ext humi get
       case 0xCFC1:
-        send = true;
-        node.value = humidity;
+        RadioSend(humidity);
         break;
-    }
-    // отправка пакета по флагу
-    if (send) {
-      radio.stopListening();
-      radio.write(&node, sizeof(node) );
-      radio.startListening();
     }
   }
 }
