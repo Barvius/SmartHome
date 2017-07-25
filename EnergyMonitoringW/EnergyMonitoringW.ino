@@ -14,7 +14,7 @@ typedef struct Node {
   float value = NULL;
 } Node;
 
-typedef struct Emon{
+typedef struct Emon {
   float realPower;
   float Vrms;
   float Irms;
@@ -27,15 +27,15 @@ void setup() {
   Serial.begin(57600);
 
   radio.begin();
-  radio.setAutoAck(1);
-  radio.setRetries(0, 15);
+  radio.setAutoAck(0);
+  radio.setRetries(5, 15);
   radio.enableAckPayload();
   radio.enableDynamicPayloads();
-  radio.openReadingPipe(2, address[0]);
+  radio.openReadingPipe(1, address[0]);
   radio.openWritingPipe(address[2]);
   radio.setChannel(0x60);
   radio.setPALevel (RF24_PA_MAX);
-  radio.setDataRate (RF24_1MBPS);
+  radio.setDataRate (RF24_250KBPS);
   radio.powerUp();
   radio.startListening();
 
@@ -43,7 +43,7 @@ void setup() {
   emon1.current(2, 111.1);       // Current: input pin, calibration.
 }
 
-void RadioSend(float Value){
+void RadioSend(float Value) {
   node.value = Value;
   radio.stopListening();
   radio.write(&node, sizeof(node) );
@@ -51,7 +51,7 @@ void RadioSend(float Value){
 }
 
 void loop() {
-  emon1.calcVI(20,2000);         // Calculate all. No.of half wavelengths (crossings), time-out
+  emon1.calcVI(20, 2000);        // Calculate all. No.of half wavelengths (crossings), time-out
   emon1.serialprint();           // Print out all variables (realpower, apparent power, Vrms, Irms, power factor)
   data.realPower       = emon1.realPower;        //extract Real Power into variable
   data.Vrms            = emon1.Vrms;             //extract Vrms into Variable
@@ -60,8 +60,8 @@ void loop() {
   node.value = NULL;
   // связь с миром
   while ( radio.available()) {
-    //uint8_t len = radio.getDynamicPayloadSize();
-    //Serial.println(len);
+    uint8_t len = radio.getDynamicPayloadSize();
+    Serial.println(len);
     radio.read( &node, sizeof(node) );
     switch (node.cmd) {
       // get voltage
