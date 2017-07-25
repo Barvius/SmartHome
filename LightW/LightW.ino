@@ -37,14 +37,13 @@ void setup() {
 
   radio.begin();
   radio.setAutoAck(1);
-  radio.setRetries(0, 15);
-  radio.enableAckPayload();
+  radio.setRetries(5, 15);
   radio.enableDynamicPayloads();
-  radio.openReadingPipe(1, address[0]);
-  radio.openWritingPipe(address[3]);
   radio.setChannel(0x60);
   radio.setPALevel (RF24_PA_MAX);
   radio.setDataRate (RF24_250KBPS);
+  radio.openReadingPipe(1, address[0]);
+  radio.openWritingPipe(address[3]);
   radio.powerUp();
   radio.startListening();
 

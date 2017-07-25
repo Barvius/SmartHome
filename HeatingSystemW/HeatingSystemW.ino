@@ -51,15 +51,14 @@ void setup() {
   Serial.begin(57600);
 
   radio.begin();
-  radio.setAutoAck(0);
+  radio.setAutoAck(1);
   radio.setRetries(5, 15);
-  //radio.enableAckPayload();
   radio.enableDynamicPayloads();
-  radio.openReadingPipe(1, address[0]);
-  radio.openWritingPipe(address[1]);
   radio.setChannel(0x60);
   radio.setPALevel (RF24_PA_MAX);
   radio.setDataRate (RF24_250KBPS);
+  radio.openReadingPipe(1, address[0]);
+  radio.openWritingPipe(address[1]);
   radio.powerUp();
   radio.startListening();
 
