@@ -56,12 +56,12 @@ void setup() {
   radio.enableDynamicPayloads();
   radio.setChannel(0x60);
   radio.setPALevel (RF24_PA_MAX);
-  radio.setDataRate (RF24_250KBPS);
-  radio.openReadingPipe(1, address[0]);
+  radio.setDataRate (RF24_1MBPS);
+  radio.openReadingPipe(0, address[0]);
   radio.openWritingPipe(address[1]);
   radio.powerUp();
   radio.startListening();
-
+  
   dht.begin();
 
   sensors.begin();

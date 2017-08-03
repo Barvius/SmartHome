@@ -33,7 +33,7 @@ void setup() {
   radio.enableDynamicPayloads();
   radio.setChannel(0x60);
   radio.setPALevel (RF24_PA_MAX);
-  radio.setDataRate (RF24_250KBPS);
+  radio.setDataRate (RF24_1MBPS);
   radio.openReadingPipe(0, address[0]);
   radio.openWritingPipe(address[2]);
   radio.powerUp();
@@ -52,7 +52,7 @@ void RadioSend(float Value) {
 
 void loop() {
   emon1.calcVI(20, 2000);        // Calculate all. No.of half wavelengths (crossings), time-out
-  emon1.serialprint();           // Print out all variables (realpower, apparent power, Vrms, Irms, power factor)
+  //emon1.serialprint();           // Print out all variables (realpower, apparent power, Vrms, Irms, power factor)
   data.realPower       = emon1.realPower;        //extract Real Power into variable
   data.Vrms            = emon1.Vrms;             //extract Vrms into Variable
   data.Irms            = emon1.Irms;             //extract Irms into Variable
