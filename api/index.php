@@ -2,6 +2,9 @@
 header('Access-Control-Allow-Origin: *');
 header('Content-Type: application/json');
 
+header('Access-Control-Allow-Methods: GET, POST, PATCH, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token');
+
 include './class/system.php';
 include './class/db.php';
 include './config.php';
@@ -136,17 +139,12 @@ if (isset($_GET['tooken'])) {
 
     if (isset($_GET['sensor']) and $DB->CheckFunctionality('sensors')) {
       switch ($_GET['sensor']) {
-        case 'set_atr':
-          if (isset($_GET['id'])) {
-            if($DB->GetUserLevel == 0){
-              $DB->SensorSetAtribute($_GET['id'],$_POST['name'],$_POST['prefix'],$_POST['location'],$_POST['enable'],$_POST['inindex'],$_POST['narodmon']);
-              var_dump($_POST['location']);
-            } else {
-              System::JsonInput(403);
-            }
-          } else {
-            System::JsonInput(400);
-          }
+        case 'update':
+        if ($_SERVER['REQUEST_METHOD'] == 'POST'){
+        $data = json_decode(file_get_contents("php://input"));
+        print($data->id);
+        $DB->SensorSetAtribute($data->id,$data->cmd,$data->name,$data->prefix,$data->location,$data->en,$data->ii,$data->nm);
+        }
           break;
         case 'get_all':
           System::JsonInput(200,$DB->SensorList());
@@ -158,29 +156,33 @@ if (isset($_GET['tooken'])) {
               System::JsonInput(200,$DB->SensorGet($_GET['id']));
           }
         }
-          // if (isset($_GET['id']) and isset($_GET['period'])) {
-          //   if ($DB->SensorCheck($_GET['id'])) {
-          //     switch ($_GET['period']) {
-          //       case 'all':
-          //         $DB->SensorGetAllData($_GET['id']);
-          //         break;
-          //       case '1d':
-          //         $DB->SensorGetData($_GET['id'],'288');
-          //         break;
-          //       case 'now':
-          //       System::JsonInput(200, $DB->SensorGetNowData($_GET['id']));
-          //         break;
-          //       case 'minifid':
-          //         $DB->SensorGetMinifidData($_GET['id'],288);
-          //         break;
-          //
-          //       default:
-          //         System::JsonInput(404);
-          //         break;
-          //     }
-          //   }
-          // }
           break;
+          case 'stats':
+          if (isset($_GET['id']) and isset($_GET['period'])) {
+            if ($DB->SensorCheck($_GET['id'])) {
+              switch ($_GET['period']) {
+                case 'all':
+                  $DB->SensorGetAllData($_GET['id']);
+                  break;
+                case '1d':
+                  $DB->SensorGetData($_GET['id'],'288');
+                  break;
+                case 'now':
+                System::JsonInput(200, $DB->SensorGetNowData($_GET['id']));
+                  break;
+                case 'minifid':
+                  $DB->SensorGetMinifidData($_GET['id'],288);
+                  break;
+
+                default:
+                  System::JsonInput(404);
+                  break;
+              }
+            }
+          }
+            break;
+          //
+
         default:
           System::JsonInput(404);
           break;

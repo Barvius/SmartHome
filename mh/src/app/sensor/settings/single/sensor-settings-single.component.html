@@ -1,0 +1,25 @@
+
+<div *ngIf="sensor" class="form">
+  <md-input-container class="example-full-width">
+    <input mdInput placeholder="id" [(ngModel)]="sensor.id" disabled>
+  </md-input-container>
+  <md-input-container class="example-full-width">
+    <input mdInput placeholder="cmd" [(ngModel)]="sensor.cmd">
+  </md-input-container>
+  <md-input-container class="example-full-width">
+    <input mdInput placeholder="Название" [(ngModel)]="sensor.name">
+  </md-input-container>
+  <md-input-container class="example-full-width">
+    <input mdInput placeholder="Префикс" [(ngModel)]="sensor.prefix">
+  </md-input-container>
+  <md-input-container class="example-full-width">
+    <input mdInput placeholder="Локация" [(ngModel)]="sensor.location">
+  </md-input-container>
+  <md-checkbox [(ngModel)]="sensor.en" class="example-section">Включен</md-checkbox>
+  <md-checkbox [(ngModel)]="sensor.ii" class="example-section">На главной</md-checkbox>
+  <md-checkbox [(ngModel)]="sensor.nm" class="example-section">Народмон</md-checkbox>
+  <div class="button-row">
+    <button md-raised-button (click)="save();" color="accent">Сохранить</button>
+    <button md-raised-button (click)="back();">Назад</button>
+  </div>
+</div>

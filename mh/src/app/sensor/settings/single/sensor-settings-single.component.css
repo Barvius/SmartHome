@@ -1,0 +1,23 @@
+
+  .form{
+    margin: 0 auto 0;
+    max-width: 500px;
+    min-width: 200px;
+    /*height:100vh;*/
+    /*margin-top: 20px;*/
+    padding: 10px;
+  }
+  .example-form {
+    width: 500px;
+    margin: 0 auto 0;
+
+  }
+  .example-section {
+    display: flex;
+    align-content: center;
+    align-items: center;
+    height: 40px;
+  }
+  .example-full-width {
+    width: 100%;
+  }

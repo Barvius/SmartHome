@@ -1,0 +1,16 @@
+<div *ngIf="sensors" class="form">
+  <!-- <button md-mini-fab><md-icon>add</md-icon></button>
+  <md-divider></md-divider> -->
+  <md-list>
+    <md-list-item *ngFor="let x of sensors">
+      <h4 md-line> {{ x.name }} </h4>
+      <p md-line>
+        <span> {{x.id}} </span>
+      </p>
+      <button md-icon-button  routerLink="/settings/sensor/{{x.id}}">
+        <md-icon class="md-24">edit</md-icon>
+      </button>
+    </md-list-item>
+
+  </md-list>
+</div>

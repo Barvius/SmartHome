@@ -152,32 +152,34 @@
      System::JsonInput(200,array('id' => $data,'render_ids' => $render, 'atr'=> $name));
    }
 
-   public function SensorSetAtribute($ids,$name,$prefix,$location,$enable,$inindex,$narodmon){
+   public function SensorSetAtribute($ids,$cmd,$name,$prefix,$location,$enable,$inindex,$narodmon){
      $mysql_results = $this->pdo->prepare("SELECT `id` FROM `name_aliases` WHERE `sensor_id`=:sensor_id");
      $mysql_results->bindParam(':sensor_id', $ids);
      $mysql_results->execute();
      $id = $mysql_results->fetch(PDO::FETCH_ASSOC);
      if(!$id) {
-       $mysql_results = $this->pdo->prepare("INSERT INTO `name_aliases`(`sensor_id`, `name`, `prefix`, `location`, `enable`, `inindex`, `narodmon`) VALUES (:sensor_id, :name, :prefix, :location, :enable, :inindex, :narodmon)");
+       $mysql_results = $this->pdo->prepare("INSERT INTO `name_aliases`(`sensor_id`, `cmd`, `name`, `prefix`, `location`, `enable`, `inindex`, `narodmon`) VALUES (:sensor_id, :cmd, :name, :prefix, :location, :enable, :inindex, :narodmon)");
        $mysql_results->bindParam(':sensor_id', $ids);
+       $mysql_results->bindParam(':cmd', $cmd);
        $mysql_results->bindParam(':name', $name);
        $mysql_results->bindParam(':prefix', $prefix);
        $mysql_results->bindParam(':location', $location);
-       $mysql_results->bindParam(':enable', $enable);
-       $mysql_results->bindParam(':inindex', $inindex);
-       $mysql_results->bindParam(':narodmon', $narodmon);
+       $mysql_results->bindParam(':enable', $enable, PDO::PARAM_BOOL);
+       $mysql_results->bindParam(':inindex', $inindex, PDO::PARAM_BOOL);
+       $mysql_results->bindParam(':narodmon', $narodmon, PDO::PARAM_BOOL);
        $mysql_results->execute();
        System::JsonInput(200);
      } else {
-       $mysql_results = $this->pdo->prepare("UPDATE `name_aliases` SET `sensor_id`=:sensor_id,`name`=:name, `prefix`=:prefix, `location`=:location, `enable`=:enable, `inindex`=:inindex , `narodmon`=:narodmon WHERE id=:id");
+       $mysql_results = $this->pdo->prepare("UPDATE `name_aliases` SET `sensor_id`=:sensor_id, `cmd`=:cmd, `name`=:name, `prefix`=:prefix, `location`=:location, `enable`=:enable, `inindex`=:inindex , `narodmon`=:narodmon WHERE id=:id");
        $mysql_results->bindParam(':id', $id['id']);
        $mysql_results->bindParam(':sensor_id', $ids);
+        $mysql_results->bindParam(':cmd', $cmd);
        $mysql_results->bindParam(':name', $name);
        $mysql_results->bindParam(':prefix', $prefix);
        $mysql_results->bindParam(':location', $location);
-       $mysql_results->bindParam(':enable', $enable);
-       $mysql_results->bindParam(':inindex', $inindex);
-       $mysql_results->bindParam(':narodmon', $narodmon);
+       $mysql_results->bindParam(':enable', $enable, PDO::PARAM_BOOL);
+       $mysql_results->bindParam(':inindex', $inindex, PDO::PARAM_BOOL);
+       $mysql_results->bindParam(':narodmon', $narodmon, PDO::PARAM_BOOL);
        $mysql_results->execute();
        System::JsonInput(200);
      }
@@ -190,7 +192,16 @@
     //  }
      $mysql_results = $this->pdo->query("SELECT * FROM `name_aliases`");
      while($rr = $mysql_results->fetch(PDO::FETCH_ASSOC)) {
-       $name[] = array('id' => $rr['sensor_id'], 'name' => $rr['name'], 'prefix' => $rr['prefix'], 'location' => $rr['location'], 'en' => $rr['enable'], 'ii' => $rr['inindex'], 'nm' => $rr['narodmon']);
+       $name[] = array(
+         'id' => $rr['sensor_id'],
+         'cmd' => $rr['cmd'],
+         'name' => $rr['name'],
+         'prefix' => $rr['prefix'],
+         'location' => $rr['location'],
+         'en' => $rr['enable'],
+         'ii' => $rr['inindex'],
+         'nm' => $rr['narodmon'],
+         'value' => $this->SensorGetNowData($rr['sensor_id']));
       //  if($rr['enable']){
       //    $render[$rr['location']][] = $rr['sensor_id'];
       //  }
@@ -215,7 +226,8 @@
      $mysql_results->bindParam(':sensor_id', $id);
      $mysql_results->execute();
      while($rr = $mysql_results->fetch(PDO::FETCH_ASSOC)) {
-       $name = array('id' => $rr['sensor_id'], 'name' => $rr['name'], 'prefix' => $rr['prefix'], 'location' => $rr['location'], 'en' => $rr['enable'], 'ii' => $rr['inindex'], 'nm' => $rr['narodmon']);
+       $name = array('id' => $rr['sensor_id'], 'cmd' => $rr['cmd'], 'name' => $rr['name'], 'prefix' => $rr['prefix'], 'location' => $rr['location'], 'en' => $rr['enable'],
+        'ii' => $rr['inindex'], 'nm' => $rr['narodmon'], 'value'=>$this->SensorGetNowData($rr['sensor_id']));
      }
      return $name;
    }
@@ -233,14 +245,14 @@
    public function SensorGetNowData($id){
      $mysql_results = $this->pdo->query("SELECT {$id} FROM `stats` WHERE id=(SELECT MAX(id) FROM stats)");
      $rr = $mysql_results->fetch(PDO::FETCH_ASSOC);
-     return array('id' => $id, 'data' => round($rr[$id],1));
+     return round($rr[$id],1);
    }
 
    public function SensorGetData($id,$limit){
      $mysql_results = $this->pdo->query("SELECT {$id} ,date FROM `stats` order by `id` desc limit {$limit}");
      while($rr = $mysql_results->fetch(PDO::FETCH_ASSOC)) {
        if ($rr[$id]) {
-         $data[] = array( ($rr['date']+10800)*1000, $rr[$id]);
+         $data[] = array( gmdate("d.M H:i", $rr['date']+10800), $rr[$id]);
        }
      }
      $temp = array();
@@ -255,19 +267,19 @@
      $mysql_results = $this->pdo->query("SELECT {$id} ,date FROM `stats` order by `id` desc limit {$limit}");
      while($rr = $mysql_results->fetch(PDO::FETCH_ASSOC)) {
        if ($rr[$id]) {
-         $data[] = array( ($rr['date']+10800)*1000, $rr[$id]);
+         $data[] = array( ($rr['date']+10800), $rr[$id]);
        }
      }
      $temp = array();
       foreach ($data as $key => $row){
         $temp[$key] = $row[0];
       }
-     array_multisort($temp, SORT_DESC,$data);
-     for ($i=0; $i < count($data); $i+=6) {
+     array_multisort($temp, SORT_ASC,$data);
+     for ($i=0; $i < count($data); $i+=24) {
        $min = 125;
        $max = -55;
        $sr = 0;
-       for ($j=0; $j < 6; $j++) {
+       for ($j=0; $j < 24; $j++) {
          if ($data[$i+$j][1] > $max) {
            $max = $data[$i+$j][1];
          }
@@ -276,11 +288,12 @@
          }
          $sr += $data[$i+$j][1];
        }
-       $arr['range'][] = array($data[$i][0],round($min,1),round($max,1));
-       $arr['avg'][] = array($data[$i][0],round($sr/6,1));
+       $arr['min'][] = array(gmdate("d M H:i", $data[$i][0]),round($min,1));
+       $arr['max'][] = array(gmdate("d M H:i", $data[$i][0]),round($max,1));
+       $arr['avg'][] = array(gmdate("d M H:i", $data[$i][0]),round($sr/24,1));
      }
 
-     System::JsonInput(200, array('id' => $id, 'data' => array('range' => $arr['range'], 'avg' => $arr['avg'])));
+     System::JsonInput(200, array('id' => $id, 'data' => array('min' => $arr['min'], 'max' => $arr['max'], 'avg' => $arr['avg'])));
    }
 
    public function SensorGetAllData($id){
