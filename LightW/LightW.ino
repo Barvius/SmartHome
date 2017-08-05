@@ -9,7 +9,6 @@
 #include <BMP085.h>
 
 // HW pin config
-#define AM_PIN 2
 #define ONE_WIRE_BUS 3
 
 RF24 radio(9, 10);
@@ -31,7 +30,31 @@ typedef struct Node {
 } Node;
 
 Node node;
+void DsSearch(){
+  int numberOfDevices; // Number of temperature devices found
+  DeviceAddress tempDeviceAddress; // We'll use this variable to store a found device address
+  numberOfDevices = sensors.getDeviceCount();
+  Serial.print("Found ");
+  Serial.print(numberOfDevices, DEC);
+  Serial.println(" devices.");
+   for(int i=0;i<numberOfDevices; i++){
 
+    if(sensors.getAddress(tempDeviceAddress, i)){
+    Serial.print("Found device ");
+    Serial.print(i, DEC);
+    Serial.print(" with address: ");
+    for (uint8_t i = 0; i < 8; i++){
+    if (tempDeviceAddress[i] < 16) Serial.print("0");
+    Serial.print(tempDeviceAddress[i], HEX);
+    }
+    Serial.println();
+  }else{
+    Serial.print("Found ghost device at ");
+    Serial.print(i, DEC);
+    Serial.print(" but could not detect address. Check power and cabling");
+  }
+  }
+}
 void setup() {
   Serial.begin(57600);
 
@@ -41,19 +64,21 @@ void setup() {
   radio.enableDynamicPayloads();
   radio.setChannel(0x60);
   radio.setPALevel (RF24_PA_MAX);
-  radio.setDataRate (RF24_250KBPS);
-  radio.openReadingPipe(1, address[0]);
+  radio.setDataRate (RF24_1MBPS);
+  radio.openReadingPipe(0, address[0]);
   radio.openWritingPipe(address[3]);
   radio.powerUp();
   radio.startListening();
 
   sensors.begin();
   sensors.setResolution(12);
-
-  PCF.write8(1); // off all
-
+  DsSearch();
+  for (int i=0; i<8; i++){
+    PCF.write(i, 1);
+    delay(100);
+  }
   Wire.begin();
-  ///dps.init(MODE_STANDARD, 3200, true);
+  //PressureSensor.init(MODE_STANDARD, 17600, true);
   PressureSensor.init();
 }
 
@@ -139,7 +164,7 @@ void loop() {
         break;
       // get pressure
       case 0xBFC:
-        RadioSend(Pressure);
+        RadioSend(Pressure/133.3);
         break;
 
     }
