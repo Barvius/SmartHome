@@ -19,8 +19,7 @@ AM2320 HumiditySensor;
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
-DeviceAddress TemperatureSensor = { 0x28, 0xFF, 0x61, 0x14, 0x74, 0x16, 0x05, 0xAA };
-//DeviceAddress ExternalSensor = { 0x28, 0xFF, 0x04, 0x16, 0x74, 0xC9, 0x77, 0xFF };
+DeviceAddress TemperatureSensor = { 0x28, 0xFF, 0xFF, 0xAB, 0xFB, 0x74, 0x16, 0x04 };
 
 byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"};
 
@@ -30,6 +29,7 @@ typedef struct Node {
 } Node;
 
 Node node;
+
 void DsSearch(){
   int numberOfDevices; // Number of temperature devices found
   DeviceAddress tempDeviceAddress; // We'll use this variable to store a found device address
@@ -55,6 +55,7 @@ void DsSearch(){
   }
   }
 }
+
 void setup() {
   Serial.begin(57600);
 
