@@ -9,7 +9,7 @@
 #include <BMP085.h>
 
 // HW pin config
-#define ONE_WIRE_BUS 3
+#define ONE_WIRE_BUS 8
 
 RF24 radio(9, 10);
 
