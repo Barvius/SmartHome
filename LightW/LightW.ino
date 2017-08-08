@@ -19,7 +19,8 @@ AM2320 HumiditySensor;
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
-DeviceAddress TemperatureSensor = { 0x28, 0xFF, 0xFF, 0xAB, 0xFB, 0x74, 0x16, 0x04 };
+//28.041674fdabff.b1
+DeviceAddress TemperatureSensor = { 0x28, 0xFF, 0xAB, 0xFD, 0x74, 0x16, 0x04, 0xB1 };
 
 byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"};
 
