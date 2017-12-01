@@ -55,11 +55,11 @@ void setup() {
   radio.setChannel(0x60);
   radio.setPALevel (RF24_PA_MAX);
   radio.setDataRate (RF24_1MBPS);
-  radio.openReadingPipe(0, address[0]);
+  radio.openReadingPipe(1, address[0]);
   radio.openWritingPipe(address[1]);
   radio.powerUp();
   radio.startListening();
-  
+
   dht.begin();
 
   sensors.begin();
@@ -85,7 +85,7 @@ bool WriteEEPROM(int *Value, int NewValue, uint8_t addr) {
   return false;
 }
 
-void RadioSend(float Value){
+void RadioSend(float Value) {
   node.value = Value;
   radio.stopListening();
   radio.write(&node, sizeof(node) );
@@ -100,20 +100,22 @@ void loop() {
   node.cmd = NULL;
   node.value = NULL;
   //auto control
-  if (HS.Mode) { // auto
-    if (SystemTemperature > HS.TempOn && digitalRead(PUMP_RELAY)) {
-      digitalWrite(PUMP_RELAY, LOW);
+  //if (!SystemTemperature == 85 || !SystemTemperature == -127) {
+    if (HS.Mode) { // auto
+      if (SystemTemperature > HS.TempOn && digitalRead(PUMP_RELAY)) {
+        digitalWrite(PUMP_RELAY, LOW);
+      }
+      if (SystemTemperature < HS.TempOff && !digitalRead(PUMP_RELAY)) {
+        digitalWrite(PUMP_RELAY, HIGH);
+      }
     }
-    if (SystemTemperature < HS.TempOff && !digitalRead(PUMP_RELAY)) {
-      digitalWrite(PUMP_RELAY, HIGH);
+    // alarm beep
+    if (HS.Alarm && SystemTemperature > HS.TempAlarm) {
+      tone(ALARM_PIN, 2750, 500);
+    } else {
+      noTone(ALARM_PIN);
     }
-  }
-  // alarm beep
-  if (HS.Alarm && SystemTemperature > HS.TempAlarm) {
-    tone(ALARM_PIN, 2750, 500);
-  } else {
-    noTone(ALARM_PIN);
-  }
+  //}
   // связь с миром
   while ( radio.available()) {
     //uint8_t len = radio.getDynamicPayloadSize();
@@ -122,7 +124,7 @@ void loop() {
     switch (node.cmd) {
       // set max temp
       case 0xCEA1:
-        WriteEEPROM(&HS.TempOn,node.value,TEMPON_ADDR);
+        WriteEEPROM(&HS.TempOn, node.value, TEMPON_ADDR);
         break;
       // get max temp
       case 0xCFA1:
@@ -130,7 +132,7 @@ void loop() {
         break;
       // set min temp
       case 0xCEA2:
-        WriteEEPROM(&HS.TempOff,node.value,TEMPOFF_ADDR);
+        WriteEEPROM(&HS.TempOff, node.value, TEMPOFF_ADDR);
         break;
       // ge min temp
       case 0xCFA2:
@@ -138,7 +140,7 @@ void loop() {
         break;
       // set mode
       case 0xCEA0:
-        WriteEEPROM(&HS.Mode,node.value,MODE_ADDR);
+        WriteEEPROM(&HS.Mode, node.value, MODE_ADDR);
         break;
       // get mode
       case 0xCFA0:
@@ -162,11 +164,11 @@ void loop() {
         break;
       // mode alarm set
       case 0xCEB0:
-         WriteEEPROM(&HS.Alarm,node.value,ALARM_ADDR);
+        WriteEEPROM(&HS.Alarm, node.value, ALARM_ADDR);
         break;
       // temp alarm set
       case 0xCEB1:
-        WriteEEPROM(&HS.TempAlarm,node.value,TEMPALARM_ADDR);
+        WriteEEPROM(&HS.TempAlarm, node.value, TEMPALARM_ADDR);
         break;
       // get temp
       case 0xCFE:

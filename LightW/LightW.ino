@@ -41,7 +41,7 @@ void setup() {
   radio.setChannel(0x60);
   radio.setPALevel (RF24_PA_MAX);
   radio.setDataRate (RF24_1MBPS);
-  radio.openReadingPipe(0, address[0]);
+  radio.openReadingPipe(1, address[0]);
   radio.openWritingPipe(address[3]);
   radio.powerUp();
   radio.startListening();
@@ -62,8 +62,12 @@ void setup() {
 void RadioSend(float Value){
   node.value = Value;
   radio.stopListening();
-  radio.write(&node, sizeof(node) );
+  delay(100);
+  radio.flush_tx();
+  radio.write(&node, sizeof(node));
+  delay(100);
   radio.startListening();
+  delay(100);
 }
 
 void loop() {
@@ -75,6 +79,7 @@ void loop() {
 
   node.cmd = NULL;
   node.value = NULL;
+  delay(10);
   // связь с миром
   while ( radio.available()) {
     //uint8_t len = radio.getDynamicPayloadSize();
