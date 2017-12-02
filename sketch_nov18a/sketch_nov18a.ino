@@ -5,7 +5,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(0x3c, 16, 2);
+LiquidCrystal_I2C lcd(0x3f, 16, 2);
 
 RF24 radio(9, 10);
 
@@ -26,9 +26,10 @@ void setup() {
   radio.setAutoAck(1);
   radio.setRetries(5, 15);
   radio.enableDynamicPayloads();
-  radio.setChannel(0x60);
+  radio.setChannel(0x6f);
   radio.setPALevel (RF24_PA_MAX);
-  radio.setDataRate (RF24_1MBPS);
+  //radio.setDataRate (RF24_1MBPS);
+  radio.setDataRate (RF24_250KBPS);
   radio.openReadingPipe(1, address[1]);
   radio.openReadingPipe(2, address[2]);
   radio.openReadingPipe(3, address[3]);
@@ -56,27 +57,80 @@ void RadioSend(float Value) {
 }
 
 void ask() {
+  node.value = NAN;
   radio.stopListening();
-  delay(100);
+  delay(10);
   if (radio.write(&node, sizeof(node) )) {
-    delay(100);
-    radio.startListening();
-    delay(100);
-    while ( radio.available()) {
-      radio.read( &node, sizeof(node) );
-
-    }
+   
   }
+  delay(10);
+  radio.startListening();
+  delay(750);
+  while ( radio.available()) {
+    radio.read( &node, sizeof(node) );
 
+  }
 }
 
 void loop() {
   //delay(10);
   // put your main code here, to run repeatedly:
+/*
+  lcd.clear();
+  //node.cmd = 0xBFC;
+  node.cmd = 0xCFC0;
+  node.value = NULL;
+  ask();
+  lcd.print("T");
+  lcd.setCursor(1, 0);
+  lcd.print(node.value);
+
+  node.cmd = 0xCFC1;
+  node.value = NULL;
+  ask();
+  lcd.setCursor(9, 0);
+  lcd.print("B");
+  lcd.setCursor(10, 0);
+  lcd.print(node.value);
+  
   node.cmd = 0xCFE;
   node.value = NULL;
-  lcd.print("Hello, world!");
-  delay(1000);
+  ask();
+  lcd.setCursor(0, 1);
+  lcd.print("K");
+  lcd.setCursor(1, 1);
+  lcd.print(node.value);
 
+  node.cmd = 0xCFF;
+  node.value = NULL;
+  ask();
+  lcd.setCursor(9, 1);
+  lcd.print("H-");
+  lcd.setCursor(11, 1);
+  //lcd.print(node.value);
+  if (node.value) {
+    lcd.print("OFF");
+  } else {
+    lcd.print("ON");
+  }
+
+  delay(1000);
+*/
+lcd.clear();
+node.cmd = 0xBFC;
+  node.value = NULL;
+  ask();
+  lcd.print("P");
+  lcd.setCursor(1, 0);
+  lcd.print(node.value);
+  
+  node.cmd = 0xBFA;
+  node.value = NULL;
+  ask();
+  lcd.setCursor(9, 0);
+  lcd.print("B");
+  lcd.setCursor(10, 0);
+  lcd.print(node.value);
+  delay(500);
 }
 
