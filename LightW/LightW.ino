@@ -38,9 +38,10 @@ void setup() {
   radio.setAutoAck(1);
   radio.setRetries(5, 15);
   radio.enableDynamicPayloads();
-  radio.setChannel(0x60);
+  radio.setChannel(0x6f);
   radio.setPALevel (RF24_PA_MAX);
-  radio.setDataRate (RF24_1MBPS);
+  //radio.setDataRate (RF24_1MBPS);
+  radio.setDataRate (RF24_250KBPS);
   radio.openReadingPipe(1, address[0]);
   radio.openWritingPipe(address[3]);
   radio.powerUp();
@@ -79,7 +80,7 @@ void loop() {
 
   node.cmd = NULL;
   node.value = NULL;
-  delay(10);
+  //delay(10);
   // связь с миром
   while ( radio.available()) {
     //uint8_t len = radio.getDynamicPayloadSize();
