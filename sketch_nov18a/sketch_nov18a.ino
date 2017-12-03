@@ -1,7 +1,7 @@
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
-#include "printf.h"
+
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
@@ -21,19 +21,20 @@ Node node;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(57600);
-  printf_begin();
+
   radio.begin();
   radio.setAutoAck(1);
   radio.setRetries(5, 15);
   radio.enableDynamicPayloads();
   radio.setChannel(0x6f);
   radio.setPALevel (RF24_PA_MAX);
-  //radio.setDataRate (RF24_1MBPS);
-  radio.setDataRate (RF24_250KBPS);
+  radio.setDataRate (RF24_1MBPS);
+  //radio.setDataRate (RF24_250KBPS);
   radio.openReadingPipe(1, address[1]);
   radio.openReadingPipe(2, address[2]);
   radio.openReadingPipe(3, address[3]);
   radio.openWritingPipe(address[0]);
+
   radio.powerUp();
   radio.startListening();
   radio.printDetails();
@@ -59,13 +60,14 @@ void RadioSend(float Value) {
 void ask() {
   node.value = NAN;
   radio.stopListening();
-  delay(10);
+  delay(5);
   if (radio.write(&node, sizeof(node) )) {
    
   }
-  delay(10);
+  delay(5);
   radio.startListening();
-  delay(750);
+
+  delay(1000);
   while ( radio.available()) {
     radio.read( &node, sizeof(node) );
 
@@ -75,7 +77,7 @@ void ask() {
 void loop() {
   //delay(10);
   // put your main code here, to run repeatedly:
-/*
+
   lcd.clear();
   //node.cmd = 0xBFC;
   node.cmd = 0xCFC0;
@@ -115,7 +117,7 @@ void loop() {
   }
 
   delay(1000);
-*/
+/*
 lcd.clear();
 node.cmd = 0xBFC;
   node.value = NULL;
@@ -132,5 +134,6 @@ node.cmd = 0xBFC;
   lcd.setCursor(10, 0);
   lcd.print(node.value);
   delay(500);
+*/
 }
 

@@ -52,9 +52,11 @@ void setup() {
   radio.setAutoAck(1);
   radio.setRetries(5, 15);
   radio.enableDynamicPayloads();
-  radio.setChannel(0x60);
+  radio.setChannel(0x6f);
   radio.setPALevel (RF24_PA_MAX);
   radio.setDataRate (RF24_1MBPS);
+  //radio.setDataRate (RF24_250KBPS);
+
   radio.openReadingPipe(1, address[0]);
   radio.openWritingPipe(address[1]);
   radio.powerUp();
@@ -88,8 +90,10 @@ bool WriteEEPROM(int *Value, int NewValue, uint8_t addr) {
 void RadioSend(float Value) {
   node.value = Value;
   radio.stopListening();
+  delay(5);
   radio.write(&node, sizeof(node) );
   radio.startListening();
+  delay(5);
 }
 
 void loop() {
@@ -101,20 +105,20 @@ void loop() {
   node.value = NULL;
   //auto control
   //if (!SystemTemperature == 85 || !SystemTemperature == -127) {
-    if (HS.Mode) { // auto
-      if (SystemTemperature > HS.TempOn && digitalRead(PUMP_RELAY)) {
-        digitalWrite(PUMP_RELAY, LOW);
-      }
-      if (SystemTemperature < HS.TempOff && !digitalRead(PUMP_RELAY)) {
-        digitalWrite(PUMP_RELAY, HIGH);
-      }
+  if (HS.Mode) { // auto
+    if (SystemTemperature > HS.TempOn && digitalRead(PUMP_RELAY)) {
+      digitalWrite(PUMP_RELAY, LOW);
     }
-    // alarm beep
-    if (HS.Alarm && SystemTemperature > HS.TempAlarm) {
-      tone(ALARM_PIN, 2750, 500);
-    } else {
-      noTone(ALARM_PIN);
+    if (SystemTemperature < HS.TempOff && !digitalRead(PUMP_RELAY)) {
+      digitalWrite(PUMP_RELAY, HIGH);
     }
+  }
+  // alarm beep
+  if (HS.Alarm && SystemTemperature > HS.TempAlarm) {
+    tone(ALARM_PIN, 2750, 500);
+  } else {
+    noTone(ALARM_PIN);
+  }
   //}
   // связь с миром
   while ( radio.available()) {
